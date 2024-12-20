@@ -1,5 +1,5 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Screen_Capture_API/Using_Screen_Capture#options_and_constraints
-import {Suspense, useEffect, useRef, useState, use} from "react";
+import {useEffect, useRef, useState} from "react";
 import "./VideoCapture.css";
 import {PDVersion, PlaydateDevice, requestConnectPlaydate} from 'pd-usb';
 
@@ -73,7 +73,7 @@ async function processFrame(videoElem: HTMLVideoElement, canvasElem: HTMLCanvasE
     }
     ctx.putImageData(imageData, 0, 0);
 
-    if (device) {
+    if (device && !device.device.isBusy) {
         await device.device.sendBitmapIndexed(bw_data)
     }
 }
@@ -95,33 +95,35 @@ function VideoCapture() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [processContinuously, setProcessContinuously] = useState(false);
     const [playdateDevice, setPlaydateDevice] = useState<TargetDevice | undefined>(undefined);
+    const [captureConfig, setCaptureConfig] = useState(MACOS_PLAYDATE_SIMULATOR);
+    const isProcessing = useRef(false);
 
-    const doProcessFrame = async () => {
-        if (videoRef.current && canvasRef.current) {
-            const captureConfig: CaptureConfig = MACOS_PLAYDATE_SIMULATOR;
-            await processFrame(videoRef.current, canvasRef.current, captureConfig, playdateDevice);
+    async function doProcessFrame() {
+        if (isProcessing.current || !videoRef.current || !canvasRef.current) {
+            return false;
         }
-    };
+        isProcessing.current = true;
+        try {
+            await processFrame(videoRef.current, canvasRef.current, captureConfig, playdateDevice);
+        } finally {
+            isProcessing.current = false;
+        }
+        return true;
+    }
 
     const framesSinceLastSecond = useRef(0);
     useEffect(() => {
         if (!processContinuously) {
             return;
         }
-        framesSinceLastSecond.current = 0;
-        let isProcesing = false;
         const interval = setInterval(async () => {
-            if (isProcesing) return;
-            isProcesing = true;
-            try {
-                await doProcessFrame();
+            if (await doProcessFrame()) {
                 framesSinceLastSecond.current = framesSinceLastSecond.current + 1;
-            } finally {
-                isProcesing = false;
             }
+
         }, 1000 / 30); // TODO: use the async
         return () => clearInterval(interval);
-    }, [processContinuously]);
+    }, [processContinuously, captureConfig]);
 
     const [fps, setFps] = useState(0);
     useEffect(() => {
@@ -132,14 +134,35 @@ function VideoCapture() {
         return () => clearInterval(interval);
     }, []);
 
+
     return <div>
         {capturing ?
-            <button onClick={() => {
-                if (videoRef.current) {
-                    stopCapture(videoRef.current);
-                }
-                setCapturing(false);
-            }}>Stop Capture</button> :
+            <>
+                <button onClick={() => {
+                    if (videoRef.current) {
+                        stopCapture(videoRef.current);
+                    }
+                    setCapturing(false);
+                }}>Stop Capture
+                </button>
+                <label>X: <input type="number" value={captureConfig.x} onChange={e => setCaptureConfig({
+                    ...captureConfig,
+                    x: e.target.valueAsNumber
+                })}/></label>
+                <label>Y: <input type="number" value={captureConfig.y} onChange={e => setCaptureConfig({
+                    ...captureConfig,
+                    y: e.target.valueAsNumber
+                })}/></label>
+                <label>W: <input type="number" value={captureConfig.w} onChange={e => setCaptureConfig({
+                    ...captureConfig,
+                    w: e.target.valueAsNumber
+                })}/></label>
+                <label>H: <input type="number" value={captureConfig.h} onChange={e => setCaptureConfig({
+                    ...captureConfig,
+                    h: e.target.valueAsNumber
+                })}/></label>
+
+            </> :
             <button onClick={async () => {
                 if (videoRef.current) {
                     setCapturing(await startCapture(videoRef.current));
