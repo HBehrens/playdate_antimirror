@@ -1,12 +1,12 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Screen_Capture_API/Using_Screen_Capture#options_and_constraints
 import {useEffect, useRef, useState} from "react";
 import "./VideoCapture.css";
-import {PDVersion, PlaydateDevice, requestConnectPlaydate} from 'pd-usb';
+import {isUsbSupported, PDVersion, PlaydateDevice, requestConnectPlaydate} from 'pd-usb';
+import {apply_bayer, apply_threshold, apply_floydsteinberg, apply_atkinson} from "./dithering.ts";
 
 async function startCapture(videoElem: HTMLVideoElement) {
     const displayMediaOptions: DisplayMediaStreamOptions = {
         video: {
-
             displaySurface: "window",
         },
         audio: false,
@@ -43,7 +43,45 @@ const MACOS_PLAYDATE_SIMULATOR: CaptureConfig = {
     h: 240,
 };
 
-async function processFrame(videoElem: HTMLVideoElement, canvasElem: HTMLCanvasElement, captureConfig: CaptureConfig, device?: TargetDevice) {
+type ConversionThreshold = {
+    kind: 'threshold',
+    threshold: number,
+};
+
+type ConversionBayer = {
+    kind: 'bayer',
+    threshold: number,
+}
+
+type ConversionFloydsteinberg = {
+    kind: 'floydsteinberg',
+};
+
+type ConversationAtkinson = {
+    kind: 'atkinson',
+}
+
+type ConversationConfig = ConversionThreshold | ConversionBayer | ConversionFloydsteinberg | ConversationAtkinson;
+
+const DEFAULT_CONVERSION_CONFIG: ConversationConfig = {
+    kind: 'bayer',
+    threshold: 128,
+};
+
+function applyConversion(config: ConversationConfig, image: ImageData) {
+    switch (config.kind) {
+        case "floydsteinberg":
+            return apply_floydsteinberg(image)
+        case "threshold":
+            return apply_threshold(image, config.threshold);
+        case "bayer":
+            return apply_bayer(image, config.threshold)
+        case "atkinson":
+            return apply_atkinson(image)
+    }
+}
+
+async function processFrame(videoElem: HTMLVideoElement, canvasElem: HTMLCanvasElement, captureConfig: CaptureConfig, conversionConfig: ConversationConfig, device?: TargetDevice) {
     const {width, height} = canvasElem;
 
     const ctx = canvasElem.getContext('2d', {willReadFrequently: true});
@@ -53,27 +91,16 @@ async function processFrame(videoElem: HTMLVideoElement, canvasElem: HTMLCanvasE
     ctx.drawImage(videoElem, captureConfig.x, captureConfig.y, captureConfig.w, captureConfig.h, 0, 0, width, height);
 
     const imageData = ctx.getImageData(0, 0, width, height);
-    const data = imageData.data;
-
-    const bw_data = new Uint8Array(width * height).fill(1);
-    for (let i = 0; i < data.length; i += 4) {
-        // https://stackoverflow.com/a/52879332
-        const lum = 0.2126 * data[i]
-            + 0.7152 * data[i + 1]
-            + 0.0722 * data[i + 2];
-
-        // for now, this is clamp only
-        const bw = lum > 128 ? 255 : 0;
-        bw_data[i / 4] = bw == 0 ? 0 : 1;
-
-        data[i] = bw;
-        data[i + 1] = bw;
-        data[i + 2] = bw;
-        data[i + 3] = 255;
-    }
+    applyConversion(conversionConfig, imageData);
     ctx.putImageData(imageData, 0, 0);
 
     if (device && !device.device.isBusy) {
+        const data = imageData.data;
+        const bw_data = new Uint8Array(width * height).fill(1);
+        for (let i = 0; i < data.length; i += 4) {
+            bw_data[i / 4] = data[i] == 0 ? 0 : 1;
+        }
+
         await device.device.sendBitmapIndexed(bw_data)
     }
 }
@@ -89,6 +116,35 @@ interface TargetDevice {
     version: PDVersion,
 }
 
+function ConversionConfigElem({config, onChange}: {
+    config: ConversationConfig,
+    onChange: (c: ConversationConfig) => void
+}) {
+    return <select
+        value={config.kind} // ...force the select's value to match the state variable...
+        onChange={e => {
+            switch (e.target.value) {
+                case 'threshold':
+                    return onChange({kind: 'threshold', threshold: 128})
+                case 'bayer':
+                    return onChange({kind: 'bayer', threshold: 128})
+                case 'floydsteinberg':
+                    return onChange({kind: 'floydsteinberg'})
+                case 'atkinson':
+                    return onChange({kind: 'atkinson'})
+                default:
+                    return onChange(DEFAULT_CONVERSION_CONFIG)
+            }
+            ;
+        }} // ... and update the state variable on any change!
+    >
+        <option value="threshold">Threshold</option>
+        <option value="bayer">Bayer 4x4</option>
+        <option value="floydsteinberg">FloydSteinberg</option>
+        <option value="atkinson">Atkinson</option>
+    </select>
+}
+
 function VideoCapture() {
     const [capturing, setCapturing] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -97,6 +153,7 @@ function VideoCapture() {
     const [playdateDevice, setPlaydateDevice] = useState<TargetDevice | undefined>(undefined);
     const [captureConfig, setCaptureConfig] = useState(MACOS_PLAYDATE_SIMULATOR);
     const isProcessing = useRef(false);
+    const [conversionConfig, setConversionConfig] = useState<ConversationConfig>(DEFAULT_CONVERSION_CONFIG);
 
     async function doProcessFrame() {
         if (isProcessing.current || !videoRef.current || !canvasRef.current) {
@@ -104,7 +161,7 @@ function VideoCapture() {
         }
         isProcessing.current = true;
         try {
-            await processFrame(videoRef.current, canvasRef.current, captureConfig, playdateDevice);
+            await processFrame(videoRef.current, canvasRef.current, captureConfig, conversionConfig, playdateDevice);
         } finally {
             isProcessing.current = false;
         }
@@ -123,7 +180,7 @@ function VideoCapture() {
 
         }, 1000 / 30); // TODO: use the async
         return () => clearInterval(interval);
-    }, [processContinuously, captureConfig]);
+    }, [processContinuously, captureConfig, conversionConfig, playdateDevice]);
 
     const [fps, setFps] = useState(0);
     useEffect(() => {
@@ -169,6 +226,7 @@ function VideoCapture() {
                 }
             }}>Start Capture</button>
         }
+        <ConversionConfigElem config={conversionConfig} onChange={setConversionConfig}/>
         <video ref={videoRef} id="video" autoPlay></video>
         <br/>
         <button onClick={async () => {
@@ -182,25 +240,32 @@ function VideoCapture() {
         </label>
         {processContinuously && <div>{fps} FPS</div>}
         <canvas ref={canvasRef} width={400} height={240}></canvas>
-        <button
-            onClick={async () => {
-                if (playdateDevice?.device) {
-                    try {
-                        await playdateDevice.device.close();
-                    } catch (e) {
-                        console.error(e);
-                    }
-                }
-                const device = await requestConnectPlaydate();
-                await device.open();
-                setPlaydateDevice({
-                    device,
-                    version: await device.getVersion(),
-                });
-            }}
-        >Connect Playdate
 
-        </button>
+        {isUsbSupported() ?
+
+            <button
+                onClick={async () => {
+                    if (playdateDevice?.device) {
+                        try {
+                            await playdateDevice.device.close();
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                    const device = await requestConnectPlaydate();
+                    await device.open();
+                    device.on('disconnect', () => setPlaydateDevice(undefined));
+                    device.on('close', () => setPlaydateDevice(undefined));
+                    console.log(device);
+                    setPlaydateDevice({
+                        device,
+                        version: await device.getVersion(),
+                    });
+                }}
+            >{playdateDevice ? "Connect to a different Playdate" : "Connect to your Playdate"}</button> :
+            <div>Web Serial is not supported by this browser. <a
+                href={"https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API#browser_compatibility"}>Check MDN
+                for supported browsers</a>.</div>}
         {playdateDevice && <PlaydateDeviceDetails device={playdateDevice}/>
         }
     </div>;
