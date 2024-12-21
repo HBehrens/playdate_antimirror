@@ -1,11 +1,10 @@
 import {Container, Grid2, LinearProgress, Link, Paper, Stack, Typography} from "@mui/material";
 import {Done, Info, ScreenShare, Videocam} from "@mui/icons-material";
 import PlaydateConnection, {ConnectedPlaydate} from "./PlaydateConnection.tsx";
-import {useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import Quantization from "./Quantization.tsx";
 import VideoCapture, {CaptureConfig, CaptureConfigAndSource, DEFAULT_CAPTURE_CONFIG} from "./VideoCapture.tsx";
 import {apply_quantization, DEFAULT_QUANTIZATION_CONFIG, QuantizationConfig} from "./imageQuantization.ts";
-import Button from "@mui/material/Button";
 
 async function processFrame(videoElem: HTMLVideoElement, canvasElem: HTMLCanvasElement, captureConfig: CaptureConfig, quantizationConfig: QuantizationConfig, device?: ConnectedPlaydate) {
     const {width, height} = canvasElem;
@@ -45,7 +44,7 @@ function App() {
     const isProcessing = useRef(false);
     const fpsSnapshot = useRef({seconds: new Date().getTime() / 1000, totalFrames: 0});
 
-    async function doProcessFrame() {
+    const doProcessFrame = useCallback(async ()=>  {
         if (isProcessing.current || !canvasRef.current || !videoRef.current) {
             return false;
         }
@@ -72,7 +71,7 @@ function App() {
             isProcessing.current = false;
         }
         return true;
-    }
+    }, [captureConfigAndSource.captureConfig, quantizationConfig, connectedDevice, videoRef, canvasRef]);
 
     useEffect(() => {
         if (captureConfigAndSource.mediaStream) {
@@ -85,7 +84,7 @@ function App() {
                 setConnectedDevice({...connectedDevice, lastSecondFramesSent: 0})
             }
         }
-    }, [videoRef, canvasRef, captureConfigAndSource, quantizationConfig, connectedDevice]);
+    }, [doProcessFrame, captureConfigAndSource.mediaStream, connectedDevice]);
 
     return (
         <>
