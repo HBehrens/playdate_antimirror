@@ -108,3 +108,41 @@ export function apply_atkinson(image: ImageData): ImageData {
 
     return image;
 }
+
+type QuantizationThreshold = {
+    kind: 'threshold',
+    threshold: number,
+};
+
+type QuantizationBayer = {
+    kind: 'bayer',
+    threshold: number,
+}
+
+type QuantizationFloydsteinberg = {
+    kind: 'floydsteinberg',
+};
+
+type QuantizationAtkinson = {
+    kind: 'atkinson',
+}
+
+export type QuantizationConfig = QuantizationThreshold | QuantizationBayer | QuantizationFloydsteinberg | QuantizationAtkinson;
+
+export const DEFAULT_QUANTIZATION_CONFIG: QuantizationConfig = {
+    kind: 'bayer',
+    threshold: 128,
+};
+
+export function apply_quantization(config: QuantizationConfig, image: ImageData) {
+    switch (config.kind) {
+        case "floydsteinberg":
+            return apply_floydsteinberg(image)
+        case "threshold":
+            return apply_threshold(image, config.threshold);
+        case "bayer":
+            return apply_bayer(image, config.threshold)
+        case "atkinson":
+            return apply_atkinson(image)
+    }
+}
