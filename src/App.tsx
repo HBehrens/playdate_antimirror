@@ -5,6 +5,7 @@ import {useCallback, useEffect, useRef, useState} from "react";
 import Quantization from "./Quantization.tsx";
 import VideoCapture, {CaptureConfig, CaptureConfigAndSource, DEFAULT_CAPTURE_CONFIG} from "./VideoCapture.tsx";
 import {apply_quantization, DEFAULT_QUANTIZATION_CONFIG, QuantizationConfig} from "./imageQuantization.ts";
+import About from "./About.tsx";
 
 async function processFrame(videoElem: HTMLVideoElement, canvasElem: HTMLCanvasElement, captureConfig: CaptureConfig, quantizationConfig: QuantizationConfig, device?: ConnectedPlaydate) {
     const {width, height} = canvasElem;
@@ -44,7 +45,7 @@ function App() {
     const isProcessing = useRef(false);
     const fpsSnapshot = useRef({seconds: new Date().getTime() / 1000, totalFrames: 0});
 
-    const doProcessFrame = useCallback(async ()=>  {
+    const doProcessFrame = useCallback(async () => {
         if (isProcessing.current || !canvasRef.current || !videoRef.current) {
             return false;
         }
@@ -97,7 +98,7 @@ function App() {
                 <Paper>
                     <Container>
                         <h1><Info/> About Playdate AntiMirror</h1>
-                        <p>There's some description on what this is.</p>
+                        <About />
                     </Container>
                 </Paper>
                 <Paper>
@@ -127,12 +128,16 @@ function App() {
                     </Container>
                 </Paper>
 
-                <Typography sx={{textAlign: 'center'}}>
-                    <Link
-                        href={"https://www.notion.so/memfault/Streaming-Pixels-to-Playdate-15e95bc84293811fb645f158237ac4f2"}>
-                        Playdate AntiMirror</Link> – Heiko's (<Link href={"https://memfault.com/about/"}>Memfault</Link> Awesome Day) project 2024-12-20
-                </Typography>
+
             </Stack>
+            <Typography sx={{textAlign: 'center'}} marginTop={5}>
+                <Link
+                    href="/">
+                    Playdate AntiMirror</Link> was made by <Link href="https://HeikoBehrens.com">Heiko</Link> during
+                the <Link href={"https://memfault.com/about/"}>Memfault</Link> Awesome Day hackathon on 2024-12-20.
+                <br/>
+                This tool is not affiliated with <Link href="https://panic.com">Panic</Link>.
+            </Typography>
         </>
     )
 }

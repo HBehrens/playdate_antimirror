@@ -1,5 +1,5 @@
-import {PDVersion, PlaydateDevice, requestConnectPlaydate} from "pd-usb";
-import {Box, Card, CardContent, Stack, Typography} from "@mui/material";
+import {isUsbSupported, PDVersion, PlaydateDevice, requestConnectPlaydate} from "pd-usb";
+import {Alert, Box, Card, CardContent, Link, Stack, Typography} from "@mui/material";
 import Button from "@mui/material/Button";
 
 export interface ConnectedPlaydate {
@@ -73,9 +73,22 @@ function PlaydateConnection(props: Props) {
             <Button variant="outlined" color="secondary" onClick={doConnect}>Connect to another Playdate</Button>
         </Box>
     } else {
-        return <Box marginBottom={2}>
-            <Button variant="contained" onClick={doConnect}>Connect to your Playdate</Button>
-        </Box>;
+        if (isUsbSupported()) {
+            return <Box marginBottom={2}>
+                <p>Make sure your Playdate is connected via USB and unlocked.</p>
+                <Button variant="contained" onClick={doConnect}>Connect to your Playdate</Button>
+            </Box>;
+        } else {
+            return <Box><Alert severity="error">Web Serial is not supported by this browser and streaming will not work.
+                Please&nbsp;
+                <Link color="secondary"
+                    href={"https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API#browser_compatibility"}>
+                    Check MDN to find a compatible  browser</Link>.</Alert>
+            </Box>;
+
+
+
+        }
     }
 }
 
