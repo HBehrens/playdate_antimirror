@@ -1,6 +1,6 @@
 # Playdate AntiMirror
 
-> Stream your artwork, game content, or any application's pixels in real-time from your desktop to your Playdate. Thanks to modern browser technology, this works on macOS, Windows and Linux without any apps. All you need is a USB cable.
+> Stream your artwork, game content, or any application's pixels in real-time from your desktop to your Playdate. Thanks to modern browser technology, this works on macOS, Windows and Linux without any apps. All you need is a USB cable: https://hbehrens.github.io/playdate_antimirror/
 
 [![MAD](https://img.shields.io/badge/built%20at-Memfault%20hackathon-blue)](https://memfault.com)
 [![Playdate](https://img.shields.io/badge/made%20for-Playdate-yellow)](https://play.date)
