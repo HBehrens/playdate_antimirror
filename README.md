@@ -4,8 +4,8 @@
 
 [![MAD](https://img.shields.io/badge/built%20at-Memfault%20hackathon-blue)](https://memfault.com)
 [![Playdate](https://img.shields.io/badge/made%20for-Playdate-yellow)](https://play.date)
-[![license](https://img.shields.io/github/license/hbehrens/pd_antimirror)](https://github.com/hbehrens/pd_antimirror/blob/master/LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=shields)](http://makeapullrequest.com)
+[![license](https://img.shields.io/github/license/hbehrens/playdate_antimirror)](https://github.com/hbehrens/playdate_antimirror/blob/master/LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 [![Playdate Mirror in Action](https://img.youtube.com/vi/LB0I2HmXF-8/0.jpg)](https://youtu.be/LB0I2HmXF-8?si=AZ9uoZvN4EYlC0jS&t=218)
 

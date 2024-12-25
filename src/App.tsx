@@ -6,6 +6,7 @@ import Quantization from "./Quantization.tsx";
 import VideoCapture, {CaptureConfig, CaptureConfigAndSource, DEFAULT_CAPTURE_CONFIG} from "./VideoCapture.tsx";
 import {apply_quantization, DEFAULT_QUANTIZATION_CONFIG, QuantizationConfig} from "./imageQuantization.ts";
 import About from "./About.tsx";
+import {PAGE_URL} from "./Constants.ts";
 
 async function processFrame(videoElem: HTMLVideoElement, canvasElem: HTMLCanvasElement, captureConfig: CaptureConfig, quantizationConfig: QuantizationConfig, device?: ConnectedPlaydate) {
     const {width, height} = canvasElem;
@@ -132,8 +133,8 @@ function App() {
             </Stack>
             <Typography sx={{textAlign: 'center'}} marginTop={5}>
                 <Link
-                    href="/">
-                    Playdate AntiMirror</Link> was made by <Link href="https://HeikoBehrens.com">Heiko</Link> during
+                    href={PAGE_URL}>
+                    Playdate AntiMirror</Link> was made by <Link href="https://HeikoBehrens.com">Heiko Behrens</Link> during
                 the <Link href={"https://memfault.com/about/"}>Memfault</Link> Awesome Day hackathon on 2024-12-20.
                 <br/>
                 This tool is not affiliated with <Link href="https://panic.com">Panic</Link>.
