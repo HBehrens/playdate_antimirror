@@ -12,7 +12,7 @@ function About() {
             <li>
                 <b>As a designer</b>, use it to continuously review your art on the real device in real time without
                 leaving
-                Aseprite, Photoshop, Gimp, or your graphics/animation tool of choice.
+                Aseprite, Photoshop, Gimp, Rive, or your graphics/animation tool of choice.
                 Open your content in a secondary window at 100% zoom, capture its content, and keep working.
             </li>
             <li>
